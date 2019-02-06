@@ -40,9 +40,16 @@ class SIFFile(object):
     """
 
     def __init__(self, filepath):
-        self.filepath = filepath
-        self._read_header(filepath)
-
+        
+        if type(filepath) == str:
+            self.filepath = filepath
+            self.data=open(filepath, 'rb')    
+        else:
+            self.filepath = "::memory::"
+            self.data=filepath
+            
+        self._read_header()
+            
     def __repr__(self):
         info = (('Original Filename', self.original_filename),
                 ('Date', self.date),
@@ -72,8 +79,9 @@ class SIFFile(object):
         res = super().__repr__() + '\n' + res
         return res
 
-    def _read_header(self, filepath):
-        f = open(filepath, 'rb')
+    def _read_header(self):
+        f = self.data
+        f.seek(0)
         headerlen = 32
         spool = 0
         i = 0
@@ -82,7 +90,7 @@ class SIFFile(object):
             if i == 0:
                 if line != b'Andor Technology Multi-Channel File':
                     f.close()
-                    raise Exception('{} is not an Andor SIF file'.format(filepath))
+                    raise Exception('{} is not an Andor SIF file'.format(self.filepath))
             elif i == 2:
                 tokens = line.split()
                 self.temperature = float(tokens[5])
@@ -135,7 +143,7 @@ class SIFFile(object):
                 self.ybin = int(tokens[6])
             i += 1
 
-        f.close()
+        #f.close()
 
         width = self.right - self.left + 1
         mod = width % self.xbin
@@ -144,7 +152,7 @@ class SIFFile(object):
         mod = height % self.ybin
         self.height = int((height - mod) / self.xbin)
 
-        self.filesize = os.path.getsize(filepath)
+        self.filesize = -1#os.path.getsize(filepath)
         self.datasize = self.width * self.height * 4 * self.stacksize
         self.m_offset = self.filesize - self.datasize - 8
 
@@ -156,11 +164,12 @@ class SIFFile(object):
         :param num: block number
         :return: a numpy array with shape (y, x)
         """
-        f = open(self.filepath, 'rb')
+        f = self.data #open(self.filepath, 'rb')
+        f.seek(0)
         f.seek(self.m_offset + num * self.width * self.height * 4)
         block = f.read(self.width * self.height * 4)
         data = np.fromstring(block, dtype=np.float32)
-        f.close()
+        #f.close()
         return data.reshape(self.height, self.width)
 
     def read_all(self):
@@ -168,11 +177,12 @@ class SIFFile(object):
         Returns all blocks (i.e. frames) in the .sif file as a numpy array.
         :return: a numpy array with shape (blocks, y, x)
         """
-        f = open(self.filepath, 'rb')
+        f = self.data #open(self.filepath, 'rb')
+        f.seek(0)
         f.seek(self.m_offset)
         block = f.read(self.width * self.height * self.stacksize * 4)
         data = np.fromstring(block, dtype=np.float32)
-        f.close()
+        #f.close()
         return data.reshape(self.stacksize, self.height, self.width)
 
     def as_xarray(self, x_axis_quantity='wavelength'):

@@ -1,6 +1,24 @@
 # SIF Reader
 
-This package is designed to read Andor SIF image file.
+This package is designed to read Andor SIF image file. The original source is located  on github [https://github.com/lightingghost/sifreader](https://github.com/lightingghost/sifreader).
+
+The modification I have made is to pass a io.BytesIO object to the sifreader instead of a filename. I needed this since I'm using bokeh to make a small gui that needs to load data and javascript cannot access the underlying filesystem and so to avoid writing a file I'm taking a bitstream directly.
+
+So instead of using sifreader as mentionned on the website one can do
+
+```
+import sifreader
+
+# open a file
+sif_file=open("test_file.sif","rb")
+
+# we read the file and convert to a _io.BytesIO
+sif_data=sifreader.SIFFile(io.BytesIO(sif_file.read()))
+```
+
+
+The rest of the information about the original package are below. Of course pip install sifreader won't install this package.
+
 
 In addition to raw image data, it provides access to the wavelength axis for spectra, and metadata such as
 exposure time, gain, recording date etc. Image data can be read as a `numpy` array or as an
